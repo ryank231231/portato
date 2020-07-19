@@ -2,9 +2,10 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #define FIRST 1
-#define XP3HEADER {{0x58, 0x50, 0x33, 0x0D, 0x0A, 0x20, 0x0A, 0x1A, 0x8B, 0x67, 0x01}}
+#define XP3HEADER {{0x58/*'X'*/, 0x50/*'P'*/, 0x33/*'3'*/, 0x0d/*'\r'*/,0x0a/*'\n'*/, 0x20/*' '*/, 0x0a/*'\n'*/, 0x1a/*EOF*/, 0x8B, 0x67, 0x01}}
 
 int isfile(char path[])
 {
@@ -41,7 +42,9 @@ int PackFiles(
     SMyXP3Index *pXP3Index, *pIndex;
     PACK_FILE_INFO *pInfo;
     KRKR2_XP3_DATA_HEADER IndexHeader;
-    KRKR2_XP3_HEADER XP3Header = XP3HEADER;
+    KRKR2_XP3_HEADER XP3Header = XP3HEADER;//define XP3 Header
+
+    *hFileXP3=fopen(argv[FIRST],w+)
 }
 int main(int argc, char *argv[])
 {

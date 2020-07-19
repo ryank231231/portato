@@ -1,30 +1,80 @@
 #include <stdio.h>
+#include <stdbool.h>
 
 /*porting mingw */
 typedef unsigned char BYTE;
-typedef void *HANDLE;
+typedef void HANDLE;
 typedef long long LARGE_INTEGER;
 typedef wchar_t WCHAR;
+typedef unsigned long ULONG;
+typedef unsigned short USHORT;
+typedef WCHAR *PWCHAR;
+typedef void *PVOID;
 
 typedef struct
 {
-    long    Encrypt;
-    long    Compress;
-    WCHAR   FileName[FILENAME_MAX];
+    long Encrypt;
+    long Compress;
+    WCHAR FileName[FILENAME_MAX];
 } PACK_FILE_INFO;
 
 typedef struct
 {
-    BYTE          Magic[0xB];
+    BYTE Magic[0xB];
     LARGE_INTEGER IndexOffset;
 } KRKR2_XP3_HEADER;
 
 typedef struct
 {
-    BYTE            bZlib;
-    LARGE_INTEGER   ArchiveSize;
-    LARGE_INTEGER   OriginalSize;
+    BYTE bZlib;
+    LARGE_INTEGER ArchiveSize;
+    LARGE_INTEGER OriginalSize;
 } KRKR2_XP3_DATA_HEADER;
+
+typedef struct
+{
+    ULONG Magic; // 'File'
+    LARGE_INTEGER ChunkSize;
+} KRKR2_XP3_INDEX_CHUNK_FILE;
+
+typedef struct
+{
+    ULONG Magic; // 'info'
+    LARGE_INTEGER ChunkSize;
+    ULONG EncryptedFlag;
+    LARGE_INTEGER OriginalSize;
+    LARGE_INTEGER ArchiveSize;
+    USHORT FileNameLength;
+    PWCHAR FileName;
+} KRKR2_XP3_INDEX_CHUNK_INFO2;
+typedef struct
+{
+    ULONG Magic; // 'segm'
+    LARGE_INTEGER ChunkSize;
+    KRKR2_XP3_INDEX_CHUNK_SEGM_DATA segm[1];
+} KRKR2_XP3_INDEX_CHUNK_SEGM;
+typedef struct
+{
+    bool bZlib; // bZlib & 7 -> 1: compressed  0: raw  other: error
+    LARGE_INTEGER Offset;
+    LARGE_INTEGER OriginalSize;
+    LARGE_INTEGER ArchiveSize;
+} KRKR2_XP3_INDEX_CHUNK_SEGM_DATA;
+
+typedef struct
+{
+    ULONG Magic; // 'adlr'
+    LARGE_INTEGER ChunkSize;
+    ULONG Hash;
+} KRKR2_XP3_INDEX_CHUNK_ADLR;
+
+typedef struct
+{
+    KRKR2_XP3_INDEX_CHUNK_FILE file;
+    KRKR2_XP3_INDEX_CHUNK_INFO2 info;
+    KRKR2_XP3_INDEX_CHUNK_SEGM segm;
+    KRKR2_XP3_INDEX_CHUNK_ADLR adlr;
+} SMyXP3Index;
 
 /*
 文件开头是文件标志，为"XP3"
