@@ -43,6 +43,17 @@ int main(int argc, char *argv[])
             //printf("\n");
             //printf("%d\n", filec_enum);
         };
-
+        switch (isfile(argv[FIRST]))
+        {
+        case 1:
+            printf("it's a folder\n");
+            break;
+        case 2:
+            printf("it's a file\n");
+            break;
+            default:
+            printf("ERROR HAPPENED\n");
+            break;
+        }
     }
 }
