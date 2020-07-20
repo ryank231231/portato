@@ -21,9 +21,6 @@ int help(void){
 }
 int main(int argc, char *argv[])
 {
-    char filepath[filepath_enum];
-    int filec_enum = 0;
-
     if (argc == 1)
     {
         help();
