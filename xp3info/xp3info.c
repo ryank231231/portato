@@ -49,18 +49,18 @@ int getxp3info(char *filepath) {
   {
     int64_t offset;
 
-    offset = XP3DataHeader.OriginalSize + SEEK_SET;
-    fseek(xp3file, offset, SEEK_SET);
-    fread(&XP3DataHeader, sizeof(XP3DataHeader), 1, xp3file);
-    printf("\n%x\t%x\n", i64highpart(XP3DataHeader.ArchiveSize),
-           i64lowpart(XP3DataHeader.ArchiveSize));
+    if (XP3DataHeader.bZlib & 0x80) {
+      printf("File context table were compressed\n");
+    }
     do {
-      if ((i64highpart(XP3DataHeader.ArchiveSize) != 0) ||
-          (i64lowpart(XP3DataHeader.ArchiveSize) == 0)) {
-        printf("a!\n%x\t%x\n", (i64highpart(XP3DataHeader.ArchiveSize) != 0),
-               (i64lowpart(XP3DataHeader.ArchiveSize) == 0));
-        continue;
-      }
+      offset = XP3DataHeader.OriginalSize + SEEK_SET;
+      fseek(xp3file, offset, SEEK_SET);
+      fread(&XP3DataHeader, sizeof(XP3DataHeader), 1, xp3file);
+      printf("\nhp:%x\tlp:%x\niscped:%x\traw_cp:%d\n",
+             i64highpart(XP3DataHeader.ArchiveSize),
+             i64lowpart(XP3DataHeader.ArchiveSize),
+             (XP3DataHeader.bZlib) & (0x80),
+             XP3DataHeader.bZlib);  // print some info
     } while (XP3DataHeader.bZlib & 0x80);
 
     printf("Orig size:%lld\nComped size:%lld\nComp rate:%d%%\n",
