@@ -4,7 +4,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#include "portato.h"
+#include "../portato.h"
 
 int isfile(char path[]) {
   struct stat buf;
