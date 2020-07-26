@@ -5,9 +5,9 @@
 
 typedef unsigned char byte_t;
 
-struct XP3Header {
-  byte_t Magic[0xB];
-  //byte_t m2[0x4];
+struct KRKR_XP3Header {
+  int32_t Magic;
+  byte_t m2[0x7];
   int64_t offset;
 };
 
