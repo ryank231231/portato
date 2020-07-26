@@ -17,7 +17,9 @@ int isfile(char path[]) {
 }
 
 int help(void) {
-  printf("Usage: xp3info <filename>\n");
+  printf("Usage: xp3info <filename>\n\n");
+  printf("Written by ryank231231 <https://ryank231231.top>\n");
+  printf("This program is covered by terms of the GPL Version 3.\n");
   return EXIT_SUCCESS;
 }
 
