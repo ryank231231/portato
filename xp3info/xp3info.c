@@ -65,7 +65,7 @@ int getxp3info(char *filepath) {
              XP3DataHeader.bZlib);  // print some info
     } while (XP3DataHeader.bZlib & 0x80);
 
-    printf("Orig size:%lld\nComped size:%lld\nComp rate:%d%%\n",
+    printf("Orig size:%lld\nComped size:%lld\nComp rate:%d%%\n",//doesn't work,returns error comped size.
            XP3DataHeader.OriginalSize, XP3DataHeader.ArchiveSize,
            (int)(XP3DataHeader.ArchiveSize / XP3DataHeader.OriginalSize));
   }
