@@ -3,6 +3,18 @@
 
 #define FIRST 1
 
+#define TVP_XP3_INDEX_ENCODE_METHOD_MASK 0x07
+#define TVP_XP3_INDEX_ENCODE_RAW      0
+#define TVP_XP3_INDEX_ENCODE_ZLIB     1
+
+#define TVP_XP3_INDEX_CONTINUE   0x80
+
+#define TVP_XP3_FILE_PROTECTED (1<<31)
+
+#define TVP_XP3_SEGM_ENCODE_METHOD_MASK  0x07
+#define TVP_XP3_SEGM_ENCODE_RAW       0
+#define TVP_XP3_SEGM_ENCODE_ZLIB      1
+
 typedef unsigned char byte_t;
 
 struct KRKR2_XP3Header {
