@@ -38,7 +38,6 @@ int getxp3info(char *filepath)
   struct KRKR2_XP3Header XP3Header;
   struct KRKR2_XP3_DATA_HEADER XP3DataHeader;
   struct KRKR2_XP3_INDEX XP3Index;
-  const int32_t magic = 0x50580d33; // XP3 magic "XP3"
 
   xp3file = fopen(filepath, "rb"); // open XP3 file
 
@@ -49,7 +48,7 @@ int getxp3info(char *filepath)
 
   fseek(xp3file, 0, SEEK_SET);
   fread(&XP3Header.Magic, sizeof(XP3Header.Magic), 1, xp3file); //read magic
-  if (i32conv(XP3Header.Magic) != magic)
+  if (i32conv(XP3Header.Magic) != XP3_HEADER_MAGIC)
   {
     gowrong("not a valid XP3 archive!");
   }
@@ -57,7 +56,7 @@ int getxp3info(char *filepath)
   XP3DataHeader.OriginalSize = XP3Header.offset;
   int64_t offset;
 
-  if (XP3DataHeader.bZlib & 0x80)
+  if (XP3DataHeader.bZlib & TVP_XP3_INDEX_CONTINUE)
   {
     printf("File context table were compressed\n");
   }
