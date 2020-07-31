@@ -56,7 +56,7 @@ int getxp3info(char *filepath)
   XP3DataHeader.OriginalSize = XP3Header.offset;
   int64_t offset;
 
-  if (XP3DataHeader.bZlib & TVP_XP3_INDEX_CONTINUE)
+  if (XP3DataHeader.bZlib & TVP_XP3_INDEX_ENCODE_METHOD_MASK == TVP_XP3_INDEX_ENCODE_ZLIB)
   {
     printf("File context table were compressed\n");
   }
