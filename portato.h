@@ -44,6 +44,11 @@ struct KRKR2_XP3_INDEX
   byte_t Index[1];
 };
 
+struct portato_xp3info_info
+{
+  int filetype;//"0" for bare XP3, "1" for XP3 with Win32 PE file, and "-1" for invalid file.
+};
+
 int32_t i32conv(int32_t i32)
 {
   int32_t i32c = ((i32 & 0xffff0000) >> 16) + ((i32 & 0x0000ffff) << 16);

@@ -14,6 +14,51 @@ int help(void)
   return EXIT_SUCCESS;
 }
 
+int64_t getheaderinXP3(FILE *filest){
+  fseek(filest, 0, SEEK_SET);
+  return 0;//no need to find offset in pure XP3
+}
+
+int64_t getheaderinPE(FILE *filest,uint8_t *mark,uint8_t *XP3Mark){
+  uint64_t offset;
+  offset=16;
+  bool found;
+  fseek(filest, 16, SEEK_SET);
+
+  if ((&mark == 0x4d/*'M'*/ && &mark+1 == 0x5a/*'Z'*/)!=true){
+    gowrong("not a valid file!");
+  }
+  // XP3 mark must be aligned by a paragraph ( 16 bytes )
+	const unsigned int one_read_size = 256*1024;
+  unsigned int read;
+  uint8_t buffer[one_read_size]; //read 256Kb once
+
+  while ((read = fread(&buffer,one_read_size,1,filest))!=0)
+  {
+    unsigned int p =0;
+    while (p<read)
+    {
+      if(!memcmp(&XP3Mark,buffer+p,11)){
+        //found the mark
+        offset+=p;
+        found=true;
+        break;
+      }
+      p+=16;
+    }
+    if(found){
+      break;
+    }
+    offset+=one_read_size;
+  }
+  
+  if(1!=found){
+    gowrong("invalid file");
+  }
+  //fread(&mark,sizeof(mark)-1,1,filest);
+  return offset;
+}
+
 int getxp3info(char *filepath)
 {
   FILE *filest = NULL;
@@ -21,6 +66,7 @@ int getxp3info(char *filepath)
   struct KRKR2_XP3Header XP3Header;
   struct KRKR2_XP3_DATA_HEADER XP3DataHeader;
   struct KRKR2_XP3_INDEX XP3Index;
+  struct portato_xp3info_info infotable;
   const uint8_t XP3Mark1[] =
 		{ 0x58/*'X'*/, 0x50/*'P'*/, 0x33/*'3'*/, 0x0d/*'\r'*/,
 		  0x0a/*'\n'*/, 0x20/*' '*/, 0x0a/*'\n'*/, 0x1a/*EOF*/,
@@ -51,17 +97,17 @@ int getxp3info(char *filepath)
   fread(&mark, sizeof(mark), 1, filest); //read magic
 
   if(memcmp(XP3Mark, mark, sizeof(mark))==0){
-    printf("Found a XP3 archive\n");
+    infotable.filetype = 0;//set for bare XP3
   }
   else
   {
-    gowrong("not a valid XP3 archive!");
-  }
+    getheaderinPE(filest,&mark,&XP3Mark);
+  }  
   
   printf("Trying to read XP3 virtual file system information from : %s\n",filepath);
   //XP3DataHeader.OriginalSize = XP3Header.offset;
 
-  if (XP3DataHeader.bZlib & TVP_XP3_INDEX_ENCODE_METHOD_MASK == TVP_XP3_INDEX_ENCODE_ZLIB)
+  if ((XP3DataHeader.bZlib & TVP_XP3_INDEX_ENCODE_METHOD_MASK) == TVP_XP3_INDEX_ENCODE_ZLIB)
   {
     printf("File context table were compressed\n");
   }
@@ -79,16 +125,6 @@ int getxp3info(char *filepath)
 
   fclose(filest);
   return EXIT_SUCCESS;
-}
-
-int64_t getheaderinXP3(FILE *filest){
-  fseek(filest, 0, SEEK_SET);
-  return 0;//no need to find offset in pure XP3
-}
-
-int64_t getheaderinPE(FILE *filest){
-  fseek(filest, 0, SEEK_SET);
-  return 0;
 }
 
 int main(int argc, char *argv[])
