@@ -17,7 +17,12 @@
 #define TVP_XP3_SEGM_ENCODE_RAW 0
 #define TVP_XP3_SEGM_ENCODE_ZLIB 1
 
+#define true 1
+#define false 0
+
 typedef unsigned char byte_t;
+
+typedef unsigned char bool;
 
 struct KRKR2_XP3Header
 {
