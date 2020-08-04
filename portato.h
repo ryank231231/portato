@@ -64,3 +64,21 @@ int32_t i64highpart(int64_t i64)
   int32_t i32c = (i64 & 0xffffffff00000000);
   return i32c;
 }
+
+void gowrong(char *reason)
+{ //simplify the error screen
+  printf("%s\n", reason);
+  exit(EXIT_FAILURE);
+}
+
+int isfile(char path[])
+{
+  struct stat buf;
+  int result;
+  result = stat(&path[0], &buf);
+  if (S_IFREG & buf.st_mode)
+  {
+    return 1; // file
+  }
+  return EXIT_SUCCESS;
+}

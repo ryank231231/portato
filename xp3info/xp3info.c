@@ -6,30 +6,12 @@
 
 #include "../portato.h"
 
-int isfile(char path[])
-{
-  struct stat buf;
-  int result;
-  result = stat(&path[0], &buf);
-  if (S_IFREG & buf.st_mode)
-  {
-    return 1; // file
-  }
-  return EXIT_SUCCESS;
-}
-
 int help(void)
 {
   printf("Usage: xp3info <filename>\n\n");
   printf("Written by ryank231231 <https://ryank231231.top>\n");
   printf("This program is covered by terms of the GPL Version 3.\n");
   return EXIT_SUCCESS;
-}
-
-void gowrong(char *reason)
-{ //simplify the error screen
-  printf("%s\n", reason);
-  exit(EXIT_FAILURE);
 }
 
 int getxp3info(char *filepath)
