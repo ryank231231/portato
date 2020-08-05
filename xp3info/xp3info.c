@@ -67,8 +67,17 @@ int getxp3info(char *filepath) {
   const uint8_t MZMark[] = {
       0x4d /*'M'*/, 0x5a /*'Z'*/
   };
+  const uint8_t cn_File[] = {0x46 /*'F'*/, 0x69 /*'i'*/, 0x6c /*'l'*/,
+                             0x65 /*'e'*/};
+  const uint8_t cn_info[] = {0x69 /*'i'*/, 0x6e /*'n'*/, 0x66 /*'f'*/,
+                             0x6f /*'o'*/};
+  const uint8_t cn_segm[] = {0x73 /*'s'*/, 0x65 /*'e'*/, 0x67 /*'g'*/,
+                             0x6d /*'m'*/};
+  const uint8_t cn_adlr[] = {0x61 /*'a'*/, 0x64 /*'d'*/, 0x6c /*'l'*/,
+                             0x72 /*'r'*/};
   bool DoInit = true;
   uint64_t offset;
+  int segmentcount;
 
   if (DoInit) {
     // the XP3 header above is splitted into two part; to avoid
@@ -89,10 +98,11 @@ int getxp3info(char *filepath) {
   fread(&mark, sizeof(mark), 1, filest);  // read magic
 
   if (memcmp(XP3Mark, mark, sizeof(mark)) == 0) {
+    offset = 0;
     infotable.filetype = 0;  // set for bare XP3
   } else {
     if ((memcmp(MZMark, mark, sizeof(MZMark))) == 0) {
-      getheaderinPE(filest, mark, XP3Mark);
+      offset = getheaderinPE(filest, mark, XP3Mark);
       infotable.filetype = 1;  // by the way~
     } else {
       gowrong("not a valid file!");
@@ -101,35 +111,29 @@ int getxp3info(char *filepath) {
 
   printf("Trying to read XP3 virtual file system information from : %s\n",
          filepath);
-  // XP3DataHeader.OriginalSize = XP3Header.offset;
 
-  if ((XP3DataHeader.bZlib & TVP_XP3_INDEX_ENCODE_METHOD_MASK) ==
-      TVP_XP3_INDEX_ENCODE_ZLIB) {
-    printf("File context table were compressed\n");
+  segmentcount=0;
+  fseek(filest, offset+11, SEEK_SET);
+
+  
+  fread(&XP3DataHeader, sizeof(XP3DataHeader), 1, filest);
+
+  printf("File type: ");
+  switch (infotable.filetype) {
+    case 0:
+      printf("bare XP3 archive\n");
+      break;
+
+    case 1:
+      printf("XP3 archive bundled with Win32 PE (Portable Executable)\n");
+
+    default:
+      break;
   }
-  do {
-    offset = XP3DataHeader.OriginalSize + SEEK_SET;
-    fseek(filest, offset, SEEK_SET);
-    fread(&XP3DataHeader, sizeof(XP3DataHeader), 1, filest);
-
-    printf("File type: ");
-    switch (infotable.filetype) {
-      case 0:
-        printf("bare XP3 archive\n");
-        break;
-
-      case 1:
-        printf("XP3 archive bundled with Win32 PE (Portable Executable)\n");
-
-      default:
-        break;
-    }
-    printf("\nhp:%x\tlp:%x\niscped:%x\traw_cp:%d\n",
-           i64highpart(XP3DataHeader.ArchiveSize),
-           i64lowpart(XP3DataHeader.ArchiveSize),
-           (XP3DataHeader.bZlib) & (0x80),
-           XP3DataHeader.bZlib);  // print some info
-  } while (XP3DataHeader.bZlib & 0x80);
+  printf("\nhp:%x\tlp:%x\niscped:%x\traw_cp:%d\n",
+         i64highpart(XP3DataHeader.ArchiveSize),
+         i64lowpart(XP3DataHeader.ArchiveSize), (XP3DataHeader.bZlib) & (0x80),
+         XP3DataHeader.bZlib);  // print some info
 
   fclose(filest);
   return EXIT_SUCCESS;
