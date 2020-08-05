@@ -49,7 +49,6 @@ int64_t getheaderinPE(FILE *filest, uint8_t *mark, uint8_t *XP3Mark) {
   if (1 != found) {
     gowrong("not a valid file");
   }
-  // fread(&mark,sizeof(mark)-1,1,filest);
   return offset;
 }
 
@@ -94,6 +93,7 @@ int getxp3info(char *filepath) {
   } else {
     if ((memcmp(MZMark, mark, sizeof(MZMark))) == 0) {
       getheaderinPE(filest, mark, XP3Mark);
+      infotable.filetype = 1;  // by the way~
     } else {
       gowrong("not a valid file!");
     }
@@ -111,6 +111,19 @@ int getxp3info(char *filepath) {
     offset = XP3DataHeader.OriginalSize + SEEK_SET;
     fseek(filest, offset, SEEK_SET);
     fread(&XP3DataHeader, sizeof(XP3DataHeader), 1, filest);
+
+    printf("File type: ");
+    switch (infotable.filetype) {
+      case 0:
+        printf("bare XP3 archive\n");
+        break;
+
+      case 1:
+        printf("XP3 archive bundled with Win32 PE (Portable Executable)\n");
+
+      default:
+        break;
+    }
     printf("\nhp:%x\tlp:%x\niscped:%x\traw_cp:%d\n",
            i64highpart(XP3DataHeader.ArchiveSize),
            i64lowpart(XP3DataHeader.ArchiveSize),
