@@ -24,9 +24,6 @@ int64_t getheaderinPE(FILE *filest, uint8_t *mark, uint8_t *XP3Mark) {
   bool found;
   fseek(filest, 16, SEEK_SET);
 
-  if ((&mark == 0x4d /*'M'*/ && &mark + 1 == 0x5a /*'Z'*/) != true) {
-    gowrong("not a valid file!");
-  }
   // XP3 mark must be aligned by a paragraph ( 16 bytes )
   const unsigned int one_read_size = 256 * 1024;
   unsigned int read;
@@ -35,7 +32,7 @@ int64_t getheaderinPE(FILE *filest, uint8_t *mark, uint8_t *XP3Mark) {
   while ((read = fread(&buffer, one_read_size, 1, filest)) != 0) {
     unsigned int p = 0;
     while (p < read) {
-      if (!memcmp(&XP3Mark, buffer + p, 11)) {
+      if ((memcmp(&XP3Mark, buffer + p, sizeof(XP3Mark))) != 0) {
         // found the mark
         offset += p;
         found = true;
@@ -43,14 +40,14 @@ int64_t getheaderinPE(FILE *filest, uint8_t *mark, uint8_t *XP3Mark) {
       }
       p += 16;
     }
-    if (found) {
+    if (found == true) {
       break;
     }
     offset += one_read_size;
   }
 
   if (1 != found) {
-    gowrong("invalid file");
+    gowrong("not a valid file");
   }
   // fread(&mark,sizeof(mark)-1,1,filest);
   return offset;
@@ -68,6 +65,9 @@ int getxp3info(char *filepath) {
       0x20 /*' '*/, 0x0a /*'\n'*/, 0x1a /*EOF*/, 0xff /* sentinel */};
   const uint8_t XP3Mark2[] = {0x8b, 0x67, 0x01, 0xff /* sentinel */};
   uint8_t XP3Mark[11];  // for comparing
+  const uint8_t MZMark[] = {
+      0x4d /*'M'*/, 0x5a /*'Z'*/
+  };
   bool DoInit = true;
   uint64_t offset;
 
@@ -92,7 +92,11 @@ int getxp3info(char *filepath) {
   if (memcmp(XP3Mark, mark, sizeof(mark)) == 0) {
     infotable.filetype = 0;  // set for bare XP3
   } else {
-    getheaderinPE(filest, &mark, &XP3Mark);
+    if ((memcmp(MZMark, mark, sizeof(MZMark))) == 0) {
+      getheaderinPE(filest, mark, XP3Mark);
+    } else {
+      gowrong("not a valid file!");
+    }
   }
 
   printf("Trying to read XP3 virtual file system information from : %s\n",
