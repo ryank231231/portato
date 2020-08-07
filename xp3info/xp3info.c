@@ -1,7 +1,10 @@
+#include "xp3info.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 #include <sys/stat.h>
 
 #include "../portato.h"
@@ -13,42 +16,48 @@ int help(void) {
   return EXIT_SUCCESS;
 }
 
-int64_t getheaderinXP3(FILE *filest) {
+uint64_t getheaderinXP3(FILE *filest) {
   fseek(filest, 0, SEEK_SET);
   return 0;  // no need to find offset in pure XP3
 }
 
-int64_t getheaderinPE(FILE *filest, uint8_t *mark, uint8_t *XP3Mark) {
-  uint64_t offset;
-  offset = 16;
-  bool found;
+uint64_t getheaderinPE(FILE *filest, uint8_t *mark, uint8_t *XP3Mark) {
+  bool found = false;
+  uint64_t offset = 16;
+
   fseek(filest, 16, SEEK_SET);
 
-  // XP3 mark must be aligned by a paragraph ( 16 bytes )
-  const unsigned int one_read_size = 256 * 1024;
+  const unsigned int one_read_size = 256 * 1024;  // read 256kb a time
   unsigned int read;
-  uint8_t buffer[one_read_size];  // read 256Kb once
+  uint8_t buffer[one_read_size];
 
-  while ((read = fread(&buffer, one_read_size, 1, filest)) != 0) {
+  while (1 == fread(buffer, one_read_size, 1, filest)) {
+    read = one_read_size;
     unsigned int p = 0;
     while (p < read) {
-      if ((memcmp(&XP3Mark, buffer + p, sizeof(XP3Mark))) != 0) {
-        // found the mark
+      if (memcmp(XP3Mark, buffer + p, sizeof(XP3Mark) - 1) == 0) {
         offset += p;
         found = true;
         break;
       }
+
       p += 16;
     }
-    if (found == true) {
-      break;
-    }
+
+    if (found == true) break;
+
     offset += one_read_size;
+
+    if (found == false) {
+      fseek(filest, one_read_size, offset);  // read next block
+      continue;
+    }
   }
 
-  if (1 != found) {
-    gowrong("not a valid file");
+  if (found == false) {
+    gowrong(FILE_NOT_VAILD);
   }
+
   return offset;
 }
 
@@ -92,7 +101,7 @@ int getxp3info(char *filepath) {
   filest = fopen(filepath, "rb");  // open XP3 file
 
   if (NULL == filest) {
-    gowrong("Cannot read file!");
+    gowrong(CANNOT_READ_FILE);
   }  // exit when readfile_fail
 
   fread(&mark, sizeof(mark), 1, filest);  // read magic
@@ -102,20 +111,19 @@ int getxp3info(char *filepath) {
     infotable.filetype = 0;  // set for bare XP3
   } else {
     if ((memcmp(MZMark, mark, sizeof(MZMark))) == 0) {
-      offset = getheaderinPE(filest, mark, XP3Mark);
+      infotable.offset = getheaderinPE(filest, mark, XP3Mark);
       infotable.filetype = 1;  // by the way~
     } else {
-      gowrong("not a valid file!");
+      gowrong(FILE_NOT_VAILD);
     }
   }
 
   printf("Trying to read XP3 virtual file system information from : %s\n",
          filepath);
 
-  segmentcount=0;
-  fseek(filest, offset+11, SEEK_SET);
+  segmentcount = 0;
+  fseek(filest, infotable.offset + 11, SEEK_SET);
 
-  
   fread(&XP3DataHeader, sizeof(XP3DataHeader), 1, filest);
 
   printf("File type: ");
@@ -126,14 +134,12 @@ int getxp3info(char *filepath) {
 
     case 1:
       printf("XP3 archive bundled with Win32 PE (Portable Executable)\n");
-
+      printf("bundled XP3 offset: %"PRIu64"\n",infotable.offset);
     default:
       break;
   }
-  printf("\nhp:%x\tlp:%x\niscped:%x\traw_cp:%d\n",
-         i64highpart(XP3DataHeader.ArchiveSize),
-         i64lowpart(XP3DataHeader.ArchiveSize), (XP3DataHeader.bZlib) & (0x80),
-         XP3DataHeader.bZlib);  // print some info
+
+
 
   fclose(filest);
   return EXIT_SUCCESS;

@@ -50,6 +50,7 @@ struct KRKR2_XP3_INDEX {
 struct portato_xp3info_info {
   int filetype;  //"0" for bare XP3, "1" for XP3 with Win32 PE file, and "-1"
                  // for invalid file.
+  uint64_t offset;
 };
 
 int32_t i32conv(int32_t i32) {
