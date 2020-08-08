@@ -1,12 +1,13 @@
 #include "xp3info.h"
 
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <inttypes.h>
 #include <sys/stat.h>
 
+#include "../includes/zlib/zlib.h"
 #include "../portato.h"
 
 int help(void) {
@@ -61,11 +62,13 @@ uint64_t getheaderinPE(FILE *filest, uint8_t *mark, uint8_t *XP3Mark) {
   return offset;
 }
 
+void printoffset(FILE *file) {
+  printf("offset : %ld(%lX)\n", ftell(file), ftell(file));
+}
+
 int getxp3info(char *filepath) {
   FILE *filest = NULL;
   uint8_t mark[11];  // mark read from file stream
-  struct KRKR2_XP3Header XP3Header;
-  struct KRKR2_XP3_DATA_HEADER XP3DataHeader;
   struct KRKR2_XP3_INDEX XP3Index;
   struct portato_xp3info_info infotable;
   const uint8_t XP3Mark1[] = {
@@ -85,7 +88,6 @@ int getxp3info(char *filepath) {
   const uint8_t cn_adlr[] = {0x61 /*'a'*/, 0x64 /*'d'*/, 0x6c /*'l'*/,
                              0x72 /*'r'*/};
   bool DoInit = true;
-  uint64_t offset;
   int segmentcount;
 
   if (DoInit) {
@@ -107,7 +109,7 @@ int getxp3info(char *filepath) {
   fread(&mark, sizeof(mark), 1, filest);  // read magic
 
   if (memcmp(XP3Mark, mark, sizeof(mark)) == 0) {
-    offset = 0;
+    infotable.offset = 0;
     infotable.filetype = 0;  // set for bare XP3
   } else {
     if ((memcmp(MZMark, mark, sizeof(MZMark))) == 0) {
@@ -121,11 +123,6 @@ int getxp3info(char *filepath) {
   printf("Trying to read XP3 virtual file system information from : %s\n",
          filepath);
 
-  segmentcount = 0;
-  fseek(filest, infotable.offset + 11, SEEK_SET);
-
-  fread(&XP3DataHeader, sizeof(XP3DataHeader), 1, filest);
-
   printf("File type: ");
   switch (infotable.filetype) {
     case 0:
@@ -134,18 +131,79 @@ int getxp3info(char *filepath) {
 
     case 1:
       printf("XP3 archive bundled with Win32 PE (Portable Executable)\n");
-      printf("bundled XP3 offset: %"PRIu64"\n",infotable.offset);
+      printf("bundled XP3 offset: %" PRIu64 " (%" PRIX64 ")\n",
+             infotable.offset, infotable.offset);
     default:
       break;
   }
 
+  // next part
 
+  segmentcount = 0;
+  fseek(filest, infotable.offset + 11, SEEK_SET);
+  // read next table
+  XP3Index.index_ofs = ReadI64LE(filest);
+  printf("XP3 Index offset: %" PRIu64 " (%" PRIX64 ")\n", XP3Index.index_ofs,
+         XP3Index.index_ofs);
+  fseek(filest, XP3Index.index_ofs, SEEK_SET);  // seek to xp3 #1 index
+#ifdef DEBUG
+  printoffset(filest);
+#endif
+  fread(&XP3Index.index_flag, sizeof(XP3Index.index_flag), 1,
+        filest);  // it will move pointers automatically
+#ifdef DEBUG
+  printoffset(filest);
+#endif
+  XP3Index.DataHeader.ArchiveSize = ReadI64LE(filest);
 
+  if ((XP3Index.index_flag & TVP_XP3_INDEX_ENCODE_METHOD_MASK) ==
+      TVP_XP3_INDEX_ENCODE_ZLIB) {
+#ifdef DEBUG
+    printoffset(filest);
+    printf("RAW XP3Index.index_flag: %x\n", XP3Index.index_flag);
+#endif
+    XP3Index.DataHeader.OriginalSize = ReadI64LE(filest);
+    printf("Index is compressed by Zlib\n");
+    printf("Index size: %" PRIu64 " (%" PRIX64 ")\t",
+           XP3Index.DataHeader.ArchiveSize, XP3Index.DataHeader.ArchiveSize);
+    printf("Index size(origin): %" PRIu64 " (%" PRIX64 ")\n",
+           XP3Index.DataHeader.OriginalSize, XP3Index.DataHeader.OriginalSize);
+
+    uint8_t indexdata[XP3Index.DataHeader.OriginalSize];
+    uint8_t *indexdata_compressed =
+        malloc(sizeof(uint8_t) * XP3Index.DataHeader.ArchiveSize);
+
+    fread(indexdata_compressed, XP3Index.DataHeader.ArchiveSize, 1, filest);
+
+    unsigned long destlen=(unsigned long)XP3Index.DataHeader.OriginalSize;
+
+    uncompress(indexdata, &destlen,
+               indexdata_compressed, XP3Index.DataHeader.ArchiveSize);
+
+    free(indexdata_compressed);
+  } else if ((XP3Index.index_flag & TVP_XP3_INDEX_ENCODE_METHOD_MASK) ==
+             TVP_XP3_INDEX_ENCODE_RAW) {
+    printf("Index is raw\n");
+    printf("Index size: %" PRIu64 " (%" PRIX64 ")\n",
+           XP3Index.DataHeader.ArchiveSize, XP3Index.DataHeader.ArchiveSize);
+  }
+
+  if ((XP3Index.index_flag & TVP_XP3_INDEX_ENCODE_METHOD_MASK) ==
+      TVP_XP3_INDEX_ENCODE_RAW) {
+    printf("Index is raw\n");
+    printf("Index size: %" PRIu64 " (%" PRIX64 ")\n",
+           XP3Index.DataHeader.ArchiveSize, XP3Index.DataHeader.ArchiveSize);
+  }
+
+  // end
   fclose(filest);
   return EXIT_SUCCESS;
 }
 
 int main(int argc, char *argv[]) {
+#ifdef DEBUG
+  printf("DEBUG MODE\txp3info build on %s %s\n", __DATE__, __TIME__);
+#endif
   if (argc == 1) {
     help();
   } else {

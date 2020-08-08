@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 #define FIRST 1
@@ -30,21 +31,17 @@ typedef unsigned char byte_t;
 
 typedef unsigned char bool;
 
-struct KRKR2_XP3Header {
-  int32_t Magic;
-  byte_t m2[0x7];  // placeholder,but necessary.
-  int64_t offset;
-};
-
 struct KRKR2_XP3_DATA_HEADER {
   byte_t bZlib;
-  int64_t ArchiveSize;
-  int64_t OriginalSize;
+  uint64_t ArchiveSize;
+  uint64_t OriginalSize;
 };
 
 struct KRKR2_XP3_INDEX {
+  uint64_t index_ofs;
+  uint8_t index_flag;
+  unsigned int index_size;
   struct KRKR2_XP3_DATA_HEADER DataHeader;
-  byte_t Index[1];
 };
 
 struct portato_xp3info_info {
@@ -58,10 +55,12 @@ int32_t i32conv(int32_t i32) {
   return i32c;
 }
 
-int64_t i64conv(int64_t i64) {
-  int64_t i64c =
-      (((i64 & 0xffff000000000000) >> 16) + ((i64 & 0x0000ffffffff0000) >> 16) +
-       ((i64 & 0x000000000000ffff) << 48));
+uint64_t i64conv(uint64_t i64) {
+  uint64_t i64c =
+      ((i64 & 0x00ff000000000000) >> 40) + ((i64 & 0x0000ff0000000000) >> 24) +
+      ((i64 & 0x000000ff00000000) >> 8) + ((i64 & 0x00000000ff000000) << 8) +
+      ((i64 & 0x0000000000ff0000) << 24) + ((i64 & 0x000000000000ff00) << 40) +
+      ((i64 & 0xffffffffffffffff) << 56) + ((i64 & 0xff00000000000000) >> 56);
   return i64c;
 }
 
